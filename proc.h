@@ -52,8 +52,12 @@ struct proc {
   int startTime;
   int runTime;
   int endTime;
-  int sleepTime;
+  int wait_queue_time;
   int priority;
+  int queue;
+  int time[5];
+  int curTime;
+  int num_run;
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -61,5 +65,5 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
-
 void update_proc_time(void);
+

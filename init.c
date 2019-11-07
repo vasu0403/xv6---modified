@@ -27,8 +27,12 @@ main(void)
   #else
   #ifdef PBS
     printf(1, "Scheduler policy: Priority Based Sceduling\n");
+  #else
+  #ifdef MLFQ
+    printf(1, "Scheduler policy: MLFQ\n");
   #endif
   #endif 
+  #endif
   #endif
   for(;;){
     printf(1, "init: starting sh\n");

@@ -113,7 +113,7 @@ main(int argc, char *argv[])
   while((n = read(fd, buf, sizeof(buf))) > 0){
   c0:	83 ec 04             	sub    $0x4,%esp
   c3:	68 00 02 00 00       	push   $0x200
-  c8:	68 e0 0b 00 00       	push   $0xbe0
+  c8:	68 40 0c 00 00       	push   $0xc40
   cd:	ff 75 08             	pushl  0x8(%ebp)
   d0:	e8 15 03 00 00       	call   3ea <read>
   d5:	83 c4 10             	add    $0x10,%esp
@@ -132,7 +132,7 @@ main(int argc, char *argv[])
   f2:	39 fe                	cmp    %edi,%esi
   f4:	74 42                	je     138 <wc+0x98>
       if(buf[i] == '\n')
-  f6:	0f be 87 e0 0b 00 00 	movsbl 0xbe0(%edi),%eax
+  f6:	0f be 87 40 0c 00 00 	movsbl 0xc40(%edi),%eax
         l++;
   fd:	31 c9                	xor    %ecx,%ecx
   ff:	3c 0a                	cmp    $0xa,%al
@@ -722,13 +722,16 @@ SYSCALL(waitx)
  479:	c3                   	ret    
 
 0000047a <set_priority>:
+SYSCALL(set_priority)
  47a:	b8 17 00 00 00       	mov    $0x17,%eax
  47f:	cd 40                	int    $0x40
  481:	c3                   	ret    
- 482:	66 90                	xchg   %ax,%ax
- 484:	66 90                	xchg   %ax,%ax
- 486:	66 90                	xchg   %ax,%ax
- 488:	66 90                	xchg   %ax,%ax
+
+00000482 <getpinfo>:
+SYSCALL(getpinfo)
+ 482:	b8 18 00 00 00       	mov    $0x18,%eax
+ 487:	cd 40                	int    $0x40
+ 489:	c3                   	ret    
  48a:	66 90                	xchg   %ax,%ax
  48c:	66 90                	xchg   %ax,%ax
  48e:	66 90                	xchg   %ax,%ax
