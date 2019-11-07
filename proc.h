@@ -66,4 +66,4 @@ struct proc {
 //   fixed-size stack
 //   expandable heap
 void update_proc_time(void);
-
+int higherPriority(int, int);               // to check if a higher priority process exists in case of PBS

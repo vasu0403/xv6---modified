@@ -105,19 +105,31 @@ trap(struct trapframe *tf)
   // If interrupts were on while locks held, would need to check nlock.
   #ifndef FCFS
 
-    #ifndef MLFQ
+    #ifdef ROUND_ROBIN
     if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER){
       // enQueue(myproc()->queue, myproc());
       yield();
     }
 
     #else
-    if(myproc() && myproc()->state == RUNNING && myproc()->queue != 4 && myproc()->curTime > qticks[myproc()->queue]){
-      
-      // enQueue(myproc()->queue, myproc());
-      yield();
-    }
-
+    #ifdef MLFQ
+      if(myproc() && myproc()->state == RUNNING && myproc()->queue != 4 && myproc()->curTime > qticks[myproc()->queue]){
+        
+        // enQueue(myproc()->queue, myproc());
+        yield();
+      }
+    #else
+      if(myproc() && myproc()->state == RUNNING){
+        if(tf->trapno == T_IRQ0+IRQ_TIMER) {
+          if(higherPriority(myproc()->priority, 1))
+            yield();
+        }
+        else {
+          if(higherPriority(myproc()->priority, 0));
+            yield();
+        }
+      }
+    #endif
     #endif
     // Check if the process has been killed since we yielded
     if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)

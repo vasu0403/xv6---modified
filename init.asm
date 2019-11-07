@@ -38,12 +38,12 @@ main(void)
   dup(0);  // stderr
   33:	c7 04 24 00 00 00 00 	movl   $0x0,(%esp)
   3a:	e8 7b 03 00 00       	call   3ba <dup>
-
-  #ifdef DEFAULT
-    printf(1, "Scheduler policy: Round Robin\n");
   #else
-  #ifdef FCFS
-    printf(1, "Scheduler policy: FCFS\n");
+  #ifdef PBS
+    printf(1, "Scheduler policy: Priority Based Sceduling\n");
+  #else
+  #ifdef MLFQ
+    printf(1, "Scheduler policy: MLFQ\n");
   3f:	58                   	pop    %eax
   40:	5a                   	pop    %edx
   41:	68 00 08 00 00       	push   $0x800

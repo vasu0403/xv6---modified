@@ -93,9 +93,9 @@ found:
   p->startTime = ticks;
   p->runTime = 0;                               // default value
   p->endTime = 0;                               // default value
-  p->wait_queue_time = 0;                              // default value
-  p->priority = 60;
-  p->queue = 0;
+  p->wait_queue_time = 0;                       // default value
+  p->priority = 60;                             // default priority
+  p->queue = 0;                                 // default queue for MLFQ Scheduling
   p->curTime = 0;
   p->num_run = 0;
   for(int i=0; i<5; i++)
@@ -108,7 +108,6 @@ found:
       }
     }
   #endif
-  // // cprintf("1 *****\n");
 
   release(&ptable.lock);
 
@@ -279,7 +278,7 @@ exit(void)
       if(pq->state == ZOMBIE)
         wakeup1(initproc);
     }
-    // if(pq->pid == 2 && curproc->pid > 2)
+    // if(pq->pid == 2 && curproc->pid > 2)              DO NOT ENTER PROCESS WITH PID 2 AGAIN AND AGAIN
     // {
     //   p = pq;
     // }
@@ -474,40 +473,36 @@ scheduler(void)
       // Enable interrupts on this processor.
       sti();
 
-      int minPriority = -1;
       struct proc* minProc = 0;
-
+      struct proc* pq = 0;
       // Loop over process table looking for process to run.
       acquire(&ptable.lock);
-      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){                                       // To implement Round Robin in case of processes with equal priority
         if(p->state != RUNNABLE)
           continue;
-        if(minPriority == -1){
-          minPriority = p->priority;
-          minProc = p;
+        minProc = p;
+        for(pq = ptable.proc; pq < &ptable.proc[NPROC]; pq++) {
+          if(pq->state == RUNNABLE && pq->priority < minProc->priority) {
+            minProc = pq;
+          }
         }
-        else if(minPriority > p->priority){
-          minPriority = p->priority;
-          minProc = p;
+        if(minProc!=0){
+          p = minProc;
+          // cprintf("%d ** %d\n", c->apicid, p->pid);
+          // Switch to chosen process.  It is the process's job
+          // to release ptable.lock and then reacquire it
+          // before jumping back to us.
+          c->proc = p;
+          switchuvm(p);
+          p->state = RUNNING;
+
+          swtch(&(c->scheduler), p->context);
+          switchkvm();
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
         }
-
-      }
-      if(minProc!=0){
-        p = minProc;
-        // cprintf("%d ** %d\n", c->apicid, p->pid);
-        // Switch to chosen process.  It is the process's job
-        // to release ptable.lock and then reacquire it
-        // before jumping back to us.
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
       }
       release(&ptable.lock);
     }
@@ -525,7 +520,6 @@ scheduler(void)
         while(cnt != qSize[0]){
           cnt++;
           p = deQueue(0);
-          // // cprintf("****1**** %d\n", p -> pid);
           flag = 1;
           if(p->state != RUNNABLE){
             enQueue(0, p);
@@ -541,7 +535,6 @@ scheduler(void)
         while(cnt != qSize[1]){
           cnt++;
           p = deQueue(1);
-          // // cprintf("****2**** %d\n", p -> pid);
           flag = 1;
           if(p->state != RUNNABLE){
             enQueue(1, p);
@@ -553,7 +546,6 @@ scheduler(void)
       }
       if(!isEmpty(2) && flag==0){
         int cnt = 0;
-        // cprintf("^^^3****\n");
         while(cnt != qSize[2]){
           cnt++;
           p = deQueue(2);
@@ -569,7 +561,6 @@ scheduler(void)
       if(!isEmpty(3) && flag==0){
         int cnt = 0;
         while(cnt != qSize[3]){
-          // // cprintf("****4****\n");
           cnt++;
           p = deQueue(3);
           flag = 1;
@@ -584,7 +575,6 @@ scheduler(void)
       if(!isEmpty(4) && flag==0){
         int cnt = 0;
         while(cnt != qSize[4]){
-          // // cprintf("****5****\n");
           cnt++;
           p = deQueue(4);
           flag = 1;
@@ -608,7 +598,6 @@ scheduler(void)
 
         swtch(&(c->scheduler), p->context);
         switchkvm();
-        // cprintf("%d------------->", p->pid);
         // if(p->state == RUNNING) {
         //   cprintf("RUNNING\n");
         // }
@@ -631,40 +620,16 @@ scheduler(void)
         // It should have changed its p->state before coming back.
         p = 0;      
         c->proc = 0;
-        // if(p->pid > 2)
-        // {  
-        //   flag = 0;
-        // }
       }
 
       if(flag == 0)
       {
-        // acquire(&ptable.lock);
         for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-        if(p->state != RUNNABLE || p -> pid == 0)
-          continue;
-        // cprintf("--------------------%d----------------\n", p->pid);
-        enQueue(0, p);
-        // flag = 1;
-        // break;
-        // Switch to chosen process.  It is the process's job
-        // to release ptable.lock and then reacquire it
-        // before jumping back to us.
-        // // cprintf("%d ** %d\n", c->apicid, p->pid);
-        // c->proc = p;
-        // switchuvm(p);
-        // p->state = RUNNING;
-
-        // swtch(&(c->scheduler), p->context);
-        // switchkvm();
-
-        // // Process is done running for now.
-        // // It should have changed its p->state before coming back.
-        // c->proc = 0;
+          if(p->state != RUNNABLE || p -> pid == 0)
+            continue;
+          enQueue(0, p);                        // insert all runnable process without a queue and runnable into queue number 0
+        }
       }
-      // release(&ptable.lock);
-      }
-      // flag = 0;
       release(&ptable.lock);
     }
   #endif
@@ -705,9 +670,9 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
-
+  cprintf("Yield called\n");
   #ifdef MLFQ
-    cprintf("PREMPTION %d\n", myproc()->pid);
+    cprintf("PREMPTION %d with curTime %d\n", myproc()->pid, myproc()->curTime);
     myproc()->queue++;
     myproc()->curTime = 0;
     enQueue(myproc()->queue, myproc());
@@ -864,7 +829,7 @@ procdump(void)
 void
 update_proc_time(void)
 {
-  // // cprintf("%%%%%%%%%%%%%%%%%%\n");
+  // cprintf("%%%%%%%%%%%%%%%%%%\n");
   // for(int i = 0; i < 5; i++)
   //   {
   //     if(front[i] <= rear[i])
@@ -978,7 +943,6 @@ enQueue(int num, struct proc* element)
         {
           if(element == q[i][j])
           {
-            // cprintf("IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII\n");
             return;
           }
         }
@@ -992,7 +956,6 @@ enQueue(int num, struct proc* element)
           {
             if(element == q[i][j])
             {
-            // cprintf("IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII\n");
               return;
             }
           }
@@ -1000,20 +963,15 @@ enQueue(int num, struct proc* element)
       }
     }
 
-    // // cprintf("********** %d ***********\n", element -> pid);
-    // else
-    // {
       if(isFull(num)) cprintf("\n Queue is full!! \n");
       else
       {
-          // cprintf("inserted %d\n", element->pid);
           qSize[num]++;
           element -> curTime = 0;
           if(front[num] == -1) front[num] = 0;
           rear[num] = (rear[num] + 1) % 100;
           q[num][rear[num]] = element;
       }
-    // }
 }
 
 struct proc*
@@ -1058,4 +1016,27 @@ int getpinfo(struct proc_stat* pinfo_p, int pid)
   release(&ptable.lock);
 
   return 0;
+}
+
+int higherPriority(int cur_proc_priority, int flag) { 
+  struct proc* p = 0;
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if(p->priority < cur_proc_priority && p->pid !=0 ) {
+      // cprintf("%d Higher priority found %d %d\n", p->pid, p->priority, cur_proc_priority);
+      release(&ptable.lock);
+      return 1;
+    }
+  }
+  if(flag) {
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if(p->priority == cur_proc_priority && p->pid !=0 ) {
+      // cprintf("%d Equal priority found  and time slice expired %d %d\n", p->pid, p->priority, cur_proc_priority);
+      release(&ptable.lock);
+      return 1;
+    }
+  }
+  }
+  release(&ptable.lock);
+  return 0; 
 }

@@ -19,7 +19,7 @@ main(void)
   dup(0);  // stdout
   dup(0);  // stderr
 
-  #ifdef DEFAULT
+  #ifdef ROUND_ROBIN
     printf(1, "Scheduler policy: Round Robin\n");
   #else
   #ifdef FCFS
